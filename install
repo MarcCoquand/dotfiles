@@ -1,5 +1,13 @@
+sudo apt update
+
+cd $HOME
+
+# Make passwordless sudo work
+export SUDO_ASKPASS=/bin/true
+
 # Install neovim
 NVIM_VERSION=0.7.0
-sudo apt-get install -y libfuse2
+sudo apt install -y fuse libfuse2
+mkdir $HOME/bin
 curl -L -o $HOME/bin/nvim https://github.com/neovim/neovim/releases/download/v${NVIM_VERSION}/nvim.appimage
 chmod a+x $HOME/bin/nvim
