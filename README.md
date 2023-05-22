@@ -22,7 +22,8 @@ Inspiration comes from Doom Emacs.
 ### Navigation
 The idea is to rely on as much as possible on symbol-based navigation rather
 than file-based navigation. That's why I do not make use of any file explorer
-plugin. Instead, I make use of netrw, marks and Telescope for navigation.
+plugin. Instead, I make use of netrw, todo-comments, marks and Telescope for
+navigation.
 
 ### Theme 
 Vim-colors-plain + pragmasveka font.
