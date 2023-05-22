@@ -1,6 +1,6 @@
 # DOTFILES 
 
-## Pictures
+## Preview
 ![Screenshot](./img1.png)
 ![Screenshot](./img2.png)
 ![Screenshot](./img3.png)
