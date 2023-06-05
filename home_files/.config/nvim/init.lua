@@ -45,21 +45,101 @@ require('lazy').setup({
   -- Color theme
   'andreypopp/vim-colors-plain',
 
-  -- {
-  --   'ggandor/leap.nvim',
-  --   dependencies = 'tpope/vim-repeat'
-  -- },
-
-  -- Motion 2
+  -- Motion
   "rlane/pounce.nvim",
 
   -- Debugger
   {
     'mfussenegger/nvim-dap',
-    dependencies = 'mxsdev/nvim-dap-vscode-js'
+    lazy = true,
+    dependencies = {
+      "mxsdev/nvim-dap-vscode-js",
+      'theHamsta/nvim-dap-virtual-text',
+      {
+        "microsoft/vscode-js-debug",
+        version = "1.x",
+        build = "npm i && npm run compile vsDebugServerBundle && mv dist out"
+      }
+    },
+    keys = {
+      { "<leader>db", function() require('dap').toggle_breakpoint() end },
+      { "<leader>dc", function() require('dap').continue() end },
+      { "<C-'>",      function() require 'dap'.step_over() end },
+      { "<C-;>",      function() require 'dap'.step_into() end },
+      { "<C-:>",      function() require 'dap'.step_out() end },
+    },
+    config = function()
+      require("dap-vscode-js").setup({
+        debugger_path = vim.fn.stdpath("data") .. "/lazy/vscode-js-debug",
+        adapters = { 'pwa-node', 'pwa-chrome', 'pwa-msedge', 'node-terminal', 'pwa-extensionHost' },
+      })
+
+      for _, language in ipairs({ "typescript", "javascript" }) do
+        require("dap").configurations[language] = {
+          {
+            -- use nvim-dap-vscode-js's pwa-node debug adapter
+            type = "pwa-node",
+            -- attach to an already running node process with --inspect flag
+            -- default port: 9222
+            request = "attach",
+            -- allows us to pick the process using a picker
+            processId = require 'dap.utils'.pick_process,
+            -- name of the debug action you have to select for this config
+            name = "Attach debugger to existing `node --inspect` process",
+            -- for compiled languages like TypeScript or Svelte.js
+            sourceMaps = true,
+            -- resolve source maps in nested locations while ignoring node_modules
+            resolveSourceMapLocations = {
+              "${workspaceFolder}/**",
+              "!**/node_modules/**" },
+            -- path to src in vite based projects (and most other projects as well)
+            cwd = "${workspaceFolder}/src",
+            -- we don't want to debug code inside node_modules, so skip it!
+            skipFiles = { "${workspaceFolder}/node_modules/**/*.js" },
+          },
+          {
+            type = "pwa-chrome",
+            name = "Launch Chrome to debug client",
+            request = "launch",
+            url = "http://localhost:5173",
+            sourceMaps = true,
+            protocol = "inspector",
+            port = 9222,
+            webRoot = "${workspaceFolder}/src",
+            -- skip files from vite's hmr
+            skipFiles = { "**/node_modules/**/*", "**/@vite/*", "**/src/client/*", "**/src/*" },
+          },
+          {
+            name = "Debug Jest Tests",
+            type = "pwa-node",
+            request = "launch",
+            runtimeArgs = {
+              "--inspect-brk",
+              "node_modules/.bin/jest",
+              "--runInBand"
+            },
+            console = "integratedTerminal",
+            internalConsoleOptions = "neverOpen",
+            port = 9229
+          },
+          -- only if language is javascript, offer this debug action
+          language == "javascript" and {
+            -- use nvim-dap-vscode-js's pwa-node debug adapter
+            type = "pwa-node",
+            -- launch a new process to attach the debugger to
+            request = "launch",
+            -- name of the debug action you have to select for this config
+            name = "Launch file in new node process",
+            -- launch current file
+            program = "${file}",
+            cwd = "${workspaceFolder}",
+          } or nil,
+        }
+      end
+      require("dap")
+    end
   },
 
-  -- 'kyazdani42/nvim-web-devicons',
   'github/copilot.vim',
 
   {
@@ -83,9 +163,6 @@ require('lazy').setup({
   {
     'stevearc/oil.nvim',
     opts = {},
-  },
-  {
-    'folke/trouble.nvim',
   },
 
   {
@@ -154,11 +231,6 @@ require('lazy').setup({
     end
   },
 
-  -- Fuzzy Finder (files, lsp, etc)
-  { 'nvim-telescope/telescope.nvim', version = '*', dependencies = { 'nvim-lua/plenary.nvim' } },
-
-  -- UI Select fuzzy find with telescope
-  'nvim-telescope/telescope-ui-select.nvim',
 
   {
     -- Auto resize windows
@@ -178,7 +250,6 @@ require('lazy').setup({
   -- 'https://git.sr.ht/~marcc/BufferBrowser',
   -- ORG
   'nvim-orgmode/orgmode',
-  'joaomsa/telescope-orgmode.nvim',
 
   {
     "kylechui/nvim-surround",
@@ -271,75 +342,18 @@ vim.opt.statusline =
 "%#PmenuSel#%m %l:%c%{luaeval('GetDiagnosticErrorCount()')} %f %=  %{FugitiveStatusline()}"
 
 -- NOTE: NVIM-DAP
-require("dap-vscode-js").setup({
-  -- node_path = "node", -- Path of node executable. Defaults to $NODE_PATH, and then "node"
-  -- Path to vscode-js-debug installation.
-  debugger_path = vim.fn.stdpath('data') .. "/lazy/nvim-dap-vscode-js",
-  -- debugger_cmd = { "extension" }, -- Command to use to launch the debug server. Takes precedence over `node_path` and `debugger_path`.
-  adapters = { 'chrome', 'pwa-node', 'pwa-chrome', 'pwa-msedge', 'node-terminal', 'pwa-extensionHost', 'node', 'chrome' }, -- which adapters to register in nvim-dap
-  -- log_file_path = "(stdpath cache)/dap_vscode_js.log" -- Path for file logging
-  -- log_file_level = false -- Logging level for output to file. Set to false to disable file logging.
-  -- log_console_level = vim.log.levels.ERROR -- Logging level for output to console. Set to false to disable console output.
-})
 
-local js_based_languages = { "typescript", "javascript", "typescriptreact" }
-
-vim.keymap.set('n', '<F5>', require 'dap'.continue)
-vim.keymap.set('n', '<F10>', require 'dap'.step_over)
-vim.keymap.set('n', '<F11>', require 'dap'.step_into)
-vim.keymap.set('n', '<F12>', require 'dap'.step_out)
-
-for _, language in ipairs(js_based_languages) do
-  require("dap").configurations[language] = {
-    {
-      type = "pwa-node",
-      request = "launch",
-      name = "Launch file",
-      program = "${file}",
-      cwd = "${workspaceFolder}",
-    },
-    {
-      type = "pwa-node",
-      request = "attach",
-      name = "Attach",
-      processId = require 'dap.utils'.pick_process,
-      cwd = "${workspaceFolder}",
-    },
-    {
-      type = "pwa-chrome",
-      request = "launch",
-      name = "Start Chrome with \"localhost\"",
-      url = "http://localhost:3000",
-      webRoot = "${workspaceFolder}",
-      userDataDir = "${workspaceFolder}/.vscode/vscode-chrome-debug-userdatadir"
-    }
-  }
+local dap = require('dap')
+dap.adapters.language = function(cb, config)
+  if config.request == 'attach' then
+    cb({ type = "server", port = 9222 })
+  else
+    if config.request == 'launch' then
+      cb({ type = 'executable', command = 'path/to/executable' })
+    end
+  end
 end
-
-
--- NOTE: TROUBLE
-require("trouble").setup {
-  auto_close = true,
-  auto_preview = false,
-  icons = false,
-  fold_open = "v",      -- icon used for open folds
-  fold_closed = ">",    -- icon used for closed folds
-  indent_lines = false, -- add an indent guide below the fold icons
-  use_diagnostic_signs = true,
-  signs = {
-    -- icons / text used for a diagnostic
-    error = "E",
-    warning = "W",
-    hint = "H",
-    information = "I"
-  },
-  action_keys = {
-    jump_close = { "<CR>" }
-  }
-}
-vim.keymap.set("n", "<leader>od", "<cmd>TroubleToggle workspace_diagnostics<cr>",
-  { silent = true, noremap = true, desc = "[O]pen [D]iagnostics " }
-)
+require("nvim-dap-virtual-text").setup()
 
 -- NOTE: MOTION
 vim.keymap.set("n", "[[", "<C-I>", { silent = true, desc = "[ Jump back" })
@@ -355,48 +369,6 @@ vim.keymap.set("v", "s", function() require 'pounce'.pounce {} end)
 vim.keymap.set("x", "s", function() require 'pounce'.pounce {} end)
 vim.keymap.set("o", "gs", function() require 'pounce'.pounce {} end)
 vim.keymap.set("n", "S", function() require 'pounce'.pounce { input = { reg = "/" } } end)
-
-
--- NOTE: LEAP
--- require('leap').opts.equivalence_classes = {
---   '\r\n',
---   ')]}>',
---   '([{<',
---   { '"', "'", '`' },
--- }
--- require('leap').opts.substitute_chars = {
---   ['\r'] = '¬'
--- }
--- require('leap').opts.labels = {
---   "r", "t", "k", "n", "i", "f", "m", "b", "l", "j", "v", "p", "d", "c", "x", "/", "z", "R", "T", "K", "N", "I", "F", "M",
---   "B", "L", "J", "V", "P", "D", "C", "X", "?", "Z"
--- }
--- require('leap').opts.sepcial_keys = {
---   next_group = '<tab>',
---   prev_group = '<s-tab>'
--- }
--- vim.keymap.set('v', 's', function()
---   local current_window = vim.fn.win_getid()
---   require('leap').leap { target_windows = { current_window } }
--- end)
--- vim.keymap.set('n', 'gs', function()
---   local current_window = vim.fn.win_getid()
---   require('leap').leap { target_windows = require('leap.util').get_enterable_windows() }
--- end)
--- vim.keymap.set('n', 's', function()
---   local current_window = vim.fn.win_getid()
---   require('leap').leap { target_windows = { current_window } }
--- end)
--- vim.api.nvim_set_hl(0, 'Cursor', { reverse = true })
--- if vim.opt.background:get() == 'dark' then
---   vim.api.nvim_set_hl(0, 'LeapLabelPrimary', {
---     fg = '#353535', bg = '#ffffff', bold = true, nocombine = true,
---   })
--- else
---   vim.api.nvim_set_hl(0, 'LeapLabelPrimary', {
---     fg = '#ffffff', bg = '#000000', bold = true, nocombine = true,
---   })
--- end
 
 -- NOTE: SNIPRUN
 -- Code execution
@@ -419,11 +391,6 @@ require('orgmode').setup({
   org_agenda_files = { "~/Library/Mobile Documents/com~apple~CloudDocs/org/**" },
   org_default_notes_file = '~/Library/Mobile Documents/com~apple~CloudDocs/org/inbox.org',
 })
-require('telescope').load_extension('orgmode')
-vim.keymap.set("n", "<leader>of", function()
-    require('telescope').extensions.orgmode.search_headings(require('telescope.themes').get_ivy({}))
-  end,
-  { desc = "[O]rg [F]ind in Agenda" })
 vim.opt.conceallevel = 2
 
 -- NOTE: FUGITIVE
@@ -552,9 +519,26 @@ vim.keymap.set("n", "<leader>z", ":b#<CR>", { desc = "[z] Last file" })
 vim.keymap.set("n", "<leader>.", ":b ", { desc = "[.] Change Buffer" })
 vim.keymap.set('n', '<leader><space>', ":e ", { desc = "[ ] Open file" })
 vim.keymap.set('n', '<leader>on', ":e ~/.config/nvim/init.lua<CR>", { desc = "[O]pen [N]eovim config" })
-vim.keymap.set('n', '<leader>sn', ":mksession ~/sessions/", { desc = "[S]ession [N]ew" })
+vim.keymap.set('n', '<leader>ss', ":mksession! ~/sessions/", { desc = "[S]ession [S]ave" })
 vim.keymap.set('n', '<leader>sl', ":source ~/sessions/", { desc = "[S]ession [L]oad" })
 vim.keymap.set('n', '<leader>gc', ":Git checkout ", { desc = "[G]it [C]heckout" })
+vim.keymap.set('n', '<leader>oo', ":e ~/Library/Mobile Documents/com~apple~CloudDocs/org/<CR>", { desc = "[O]rg [O]pen" })
+vim.keymap.set('n', '<leader>bd', ":bd<CR>", { desc = "[B]uffer [D]elete" })
+vim.keymap.set("n", "<leader>od", function()
+    vim.diagnostic.setqflist()
+    vim.cmd("Cfilter error")
+  end,
+  { silent = true, noremap = true, desc = "[O]pen [D]iagnostics " }
+)
+
+-- QUICKLIST
+vim.keymap.set('n', '[q', ':cp<CR>', { desc = "[Q]uicklist List Prev", silent = true })
+vim.keymap.set('n', ']q', ':cn<CR>', { desc = "[Q]uicklist List Next", silent = true })
+vim.keymap.set('n', '<leader>qc', ':cclose<CR>', { desc = "[Q]uicklist [C]lose", silent = true })
+vim.keymap.set('n', '<leader>qo', ':copen<CR>', { desc = "[Q]uicklist [O]pen", silent = true })
+vim.keymap.set("n", "<leader>,", "mB:vimgrep //j src/**<left><left><left><left><left><left><left><left><left>",
+  { desc = "[,] Search in project", silent = true })
+
 vim.keymap.set('n', '<leader>/', function()
   vim.lsp.buf.document_symbol({
     on_list = function(options)
@@ -564,23 +548,13 @@ vim.keymap.set('n', '<leader>/', function()
     end
   })
 end, { desc = "[/] Load file functions into quickfix list" })
--- TODO: Customize the quickfix list to look better
--- vim.cmd([[
---     function! PqfQuickfixTextFunc(info)
---         let items = getqflist({'title' : a:info.id, 'items' : 1}).items
---     let l = []
---     for idx in range(a:info.start_idx - 1, a:info.end_idx - 1)
---         " use the simplified file name
---       call add(l, fnamemodify(bufname(items[idx]), ':p:.'))
---     endfor
---     return l
---     endfunction
---   ]])
---
--- vim.opt.quickfixtextfunc = 'PqfQuickfixTextFunc'
 
-vim.keymap.set('n', '[l', ':cp<CR>', { desc = "[L]ocation List Prev" })
-vim.keymap.set('n', ']l', ':cn<CR>', { desc = "[L]ocation List Next" })
+-- Use spaces, 2 by default
+vim.cmd('set tabstop=2')
+vim.cmd('set shiftwidth=2')
+
+vim.keymap.set('n', '[l', ':lpreviour<CR>', { desc = "[L]location list Prev", silent = true })
+vim.keymap.set('n', ']l', ':lnext<CR>', { desc = "[L]ocation list Next", silent = true })
 -- Auto close location list window upon selecting item
 vim.api.nvim_create_autocmd({ 'Filetype' }, {
   callback = function()
@@ -735,106 +709,16 @@ vim.keymap.set("n", "[t", function()
     keywords = { "TODO", "NOTE" },
   })
 end, { desc = "[T]odo Previous" })
-vim.keymap.set("n", "<leader>ot", ":TroubleToggle todo<cr>",
+
+vim.keymap.set("n", "<leader>ot", function()
+    vim.cmd("TodoLocList")
+  end,
   { silent = true, noremap = true, desc = "[O]pen [T]odolist " }
 )
 
 
 -- NOTE: AUTOPAIRS
 require('mini.pairs').setup()
-
--- NOTE: TELESCOPE
--- See `:help telescope` and `:help telescope.setup()`
-require('telescope').setup {
-  defaults = {
-    mappings = {
-      i = {
-        ['<C-u>'] = false,
-        ['<C-d>'] = false,
-      },
-    },
-  },
-  pickers = {
-    live_grep = {
-      layout_strategy = 'bottom_pane',
-      -- Since get_ivy didn't work. I just copy pasted the implementation
-      border = true,
-      borderchars = {
-        "z",
-        prompt = { "─", " ", " ", " ", "─", "─", " ", " " },
-        results = { " " },
-        preview = { "─", "│", "─", "│", "╭", "╮", "╯", "╰" },
-      },
-    },
-    lsp_references = {
-      layout_strategy = 'bottom_pane',
-      -- Since get_ivy didn't work. I just copy pasted the implementation
-      border = true,
-      borderchars = {
-        "z",
-        prompt = { "─", " ", " ", " ", "─", "─", " ", " " },
-        results = { " " },
-        preview = { "─", "│", "─", "│", "╭", "╮", "╯", "╰" },
-      },
-      show_line = false
-    },
-    find_files = {
-      layout_strategy = 'bottom_pane',
-      -- Since get_ivy didn't work. I just copy pasted the implementation
-      border = true,
-      borderchars = {
-        "z",
-        prompt = { "─", " ", " ", " ", "─", "─", " ", " " },
-        results = { " " },
-        preview = { "─", "│", "─", "│", "╭", "╮", "╯", "╰" },
-      },
-    },
-    lsp_document_symbols = {
-      layout_strategy = 'bottom_pane',
-      -- Since get_ivy didn't work. I just copy pasted the implementation
-      border = true,
-      borderchars = {
-        "z",
-        prompt = { "─", " ", " ", " ", "─", "─", " ", " " },
-        results = { " " },
-        preview = { "─", "│", "─", "│", "╭", "╮", "╯", "╰" },
-      }
-    },
-    marks = {
-      layout_strategy = 'bottom_pane',
-      -- Since get_ivy didn't work. I just copy pasted the implementation
-      border = true,
-      borderchars = {
-        "z",
-        prompt = { "─", " ", " ", " ", "─", "─", " ", " " },
-        results = { " " },
-        preview = { "─", "│", "─", "│", "╭", "╮", "╯", "╰" },
-      }
-    }
-  },
-  extensions = {
-    ["ui-select"] = {
-      require("telescope.themes").get_cursor {
-      }
-    }
-  }
-}
-
--- Enable telescope fzf native, if installed
-pcall(require('telescope').load_extension, 'fzf')
-
-local utils = require("telescope.utils")
--- vim.keymap.set('n', '<leader>.', function()
---     require('telescope.builtin').find_files({ cwd = utils.buffer_dir() })
---   end,
---   { desc = '[.] Search Files from Buffer' })
-
--- vim.keymap.set('n', '<leader>/', require('telescope.builtin').lsp_document_symbols, { desc = '[/] Search Workspace' })
-vim.keymap.set('n', '<leader>,', function()
-  require('telescope.builtin').live_grep({ cwd = utils.buffer_dir() })
-end, { desc = '[,] Search Current Directory' })
-require("telescope").load_extension("ui-select")
-
 
 -- NOTE: TREESITTER
 -- See `:help nvim-treesitter`
@@ -922,10 +806,12 @@ local on_attach = function(_, bufnr)
   nmap('<leader>ca', vim.lsp.buf.code_action, '[C]ode [A]ction')
 
   nmap('gd', vim.lsp.buf.definition, '[G]oto [D]efinition')
-  nmap('<leader>cr', require('telescope.builtin').lsp_references, '[C]ode [R]eferences')
+  -- TODO: Replace lsp references lookup
+  -- nmap('<leader>cr', require('telescope.builtin').lsp_references, '[C]ode [R]eferences')
   nmap('<leader>cI', vim.lsp.buf.implementation, '[C]ode [I]mplementation')
   nmap('<leader>D', vim.lsp.buf.type_definition, 'Type [D]efinition')
-  nmap('<leader>ds', require('telescope.builtin').lsp_document_symbols, '[D]ocument [S]ymbols')
+  -- TODO: Replace document symbol lookup
+  -- nmap('<leader>ds', require('telescope.builtin').lsp_document_symbols, '[D]ocument [S]ymbols')
 
   -- See `:help K` for why this keymap
   nmap('K', vim.lsp.buf.hover, 'Hover Documentation')
