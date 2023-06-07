@@ -212,17 +212,6 @@ require('lazy').setup({
   -- Adds git releated signs to the gutter, as well as utilities for managing changes
   'lewis6991/gitsigns.nvim',
 
-  {
-    -- Add indentation guides even on blank lines
-    'lukas-reineke/indent-blankline.nvim',
-    -- Enable `lukas-reineke/indent-blankline.nvim`
-    -- See `:help indent_blankline.txt`
-    opts = {
-      char = '┊',
-      show_trailing_blankline_indent = false,
-    },
-  },
-
   -- "gc" to comment visual regions/lines
   {
     'numToStr/Comment.nvim',
@@ -231,21 +220,6 @@ require('lazy').setup({
     end
   },
 
-
-  {
-    -- Auto resize windows
-    'anuvyklack/windows.nvim',
-    dependencies = {
-      "anuvyklack/middleclass",
-      "anuvyklack/animation.nvim"
-    },
-    config = function()
-      vim.o.winwidth = 10
-      vim.o.winminwidth = 10
-      vim.o.equalalways = false
-      require('windows').setup()
-    end
-  },
 
   -- 'https://git.sr.ht/~marcc/BufferBrowser',
   -- ORG
@@ -445,7 +419,7 @@ require('gitsigns').setup {
     map('n', '<leader>gr', gs.reset_hunk, { desc = "[G]it [R]eset Line" })
     map('v', '<leader>gs', function() gs.stage_hunk { vim.fn.line("."), vim.fn.line("v") } end)
     map('v', '<leader>gr', function() gs.reset_hunk { vim.fn.line("."), vim.fn.line("v") } end)
-    map('n', '<leader>gtd', gs.toggle_deleted, { desc = "[G]it [T]oggle [D]iff inline" })
+    map('n', '<leader>gd', gs.toggle_deleted, { desc = "[G]it [T]oggle [D]iff inline" })
     map('n', '<leader>gb', gs.toggle_current_line_blame, { desc = "[G]it [B]lame Line" })
   end
 }
@@ -514,7 +488,7 @@ null_ls.setup({
 -- TODO: Implement search for current word and add to quickfix list
 vim.o.splitbelow = true
 vim.cmd('packadd cfilter')
-vim.keymap.set("n", "<leader>to", ":split | resize 10 | term<CR>", { desc = "[T]erminal [O]pen" })
+vim.keymap.set("n", "<leader>gt", ":term<CR>A", { desc = "[G]oto New [T]erminal" })
 vim.keymap.set("n", "<leader>z", ":b#<CR>", { desc = "[z] Last file" })
 vim.keymap.set("n", "<leader>.", ":b ", { desc = "[.] Change Buffer" })
 vim.keymap.set('n', '<leader><space>', ":e ", { desc = "[ ] Open file" })
@@ -522,7 +496,7 @@ vim.keymap.set('n', '<leader>on', ":e ~/.config/nvim/init.lua<CR>", { desc = "[O
 vim.keymap.set('n', '<leader>ss', ":mksession! ~/sessions/", { desc = "[S]ession [S]ave" })
 vim.keymap.set('n', '<leader>sl', ":source ~/sessions/", { desc = "[S]ession [L]oad" })
 vim.keymap.set('n', '<leader>gc', ":Git checkout ", { desc = "[G]it [C]heckout" })
-vim.keymap.set('n', '<leader>oo', ":e ~/Library/Mobile Documents/com~apple~CloudDocs/org/<CR>", { desc = "[O]rg [O]pen" })
+vim.keymap.set('n', '<leader>go', ":e ~/Library/Mobile Documents/com~apple~CloudDocs/org/<CR>", { desc = "[G]oto [O]rg" })
 vim.keymap.set('n', '<leader>bd', ":bd<CR>", { desc = "[B]uffer [D]elete" })
 vim.keymap.set("n", "<leader>od", function()
     vim.diagnostic.setqflist()
@@ -601,7 +575,7 @@ vim.api.nvim_create_autocmd({ "BufLeave", "VimLeave" },
       end
 
       -- Tests are stored separately
-      if nfm("conf.js") and nfm("test.ts") and nfm("test.js") and nfm("spec.js") and nfm("spec.ts") then
+      if nfm("config.js") and nfm("conf.js") and nfm("test.ts") and nfm("test.js") and nfm("spec.js") and nfm("spec.ts") then
         vim.cmd [[normal! mP]]
       end
     end
@@ -609,7 +583,7 @@ vim.api.nvim_create_autocmd({ "BufLeave", "VimLeave" },
 -- Last Opened Test File
 vim.cmd [[autocmd BufLeave,VimLeave *.test.js,*.test.ts,*.spec.js,*.spec.ts normal! mT]]
 -- Last Opened Config
-vim.cmd [[autocmd BufLeave,VimLeave *.json,*conf.js normal! mC]]
+vim.cmd [[autocmd BufLeave,VimLeave *.json,*conf.js,*config.js normal! mC]]
 -- Last Opened Documentation
 vim.cmd [[autocmd BufLeave,VimLeave *.md,*.org,*.txt normal! mD]]
 vim.cmd [[augroup End]]
