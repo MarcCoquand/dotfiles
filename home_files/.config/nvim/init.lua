@@ -33,6 +33,8 @@ require('lazy').setup({
   'tpope/vim-fugitive',
   'tpope/vim-rhubarb',
 
+  'MarcCoquand/Prototype.vim',
+
   -- Automatically cd to project root dir
   'airblade/vim-rooter',
 
@@ -48,6 +50,31 @@ require('lazy').setup({
   -- Motion
   "rlane/pounce.nvim",
 
+  -- Trouble diagnostics window
+  {
+    "folke/trouble.nvim",
+    opts = {
+      icons = false,
+      group = true,
+      auto_preview = true,
+      auto_close = true,
+      padding = false,
+      action_keys = {
+        jump_close = { "<CR>" },
+      },
+      fold_open = "v",      -- icon used for open folds
+      fold_closed = ">",    -- icon used for closed folds
+      indent_lines = false, -- add an indent guide below the fold icons
+      signs = {
+        -- icons / text used for a diagnostic
+        error = "error",
+        warning = "warn",
+        hint = "hint",
+        information = "info"
+      },
+      use_diagnostic_signs = false
+    },
+  },
   -- Debugger
   {
     'mfussenegger/nvim-dap',
@@ -307,13 +334,15 @@ end
 function GetDiagnosticErrorCount()
   local errorCount = #vim.diagnostic.get(0, { severity = vim.diagnostic.severity.ERROR })
   if (errorCount > 0) then
-    return ' E:' .. errorCount
+    return ' ' .. errorCount
   end
   return ''
 end
 
+-- vim.opt.statusline =
+-- "%#PmenuSel#%m %l:%c%{luaeval('GetDiagnosticErrorCount()')} %f %=  %{FugitiveStatusline()}"
 vim.opt.statusline =
-"%#PmenuSel#%m %l:%c%{luaeval('GetDiagnosticErrorCount()')} %f %=  %{FugitiveStatusline()}"
+"%m %l:%c %#StatusLineError#%{luaeval('GetDiagnosticErrorCount()')}%* %f %=  %{FugitiveStatusline()}"
 
 -- NOTE: NVIM-DAP
 
@@ -434,6 +463,7 @@ require("colorizer").setup({
     'liquid',
     'njk',
     'html',
+    'vim',
     html = { mode = 'foreground', }
   },
   user_default_options = {
@@ -498,12 +528,11 @@ vim.keymap.set('n', '<leader>sl', ":source ~/sessions/", { desc = "[S]ession [L]
 vim.keymap.set('n', '<leader>gc', ":Git checkout ", { desc = "[G]it [C]heckout" })
 vim.keymap.set('n', '<leader>go', ":e ~/Library/Mobile Documents/com~apple~CloudDocs/org/<CR>", { desc = "[G]oto [O]rg" })
 vim.keymap.set('n', '<leader>bd', ":bd<CR>", { desc = "[B]uffer [D]elete" })
-vim.keymap.set("n", "<leader>od", function()
-    vim.diagnostic.setqflist()
-    vim.cmd("Cfilter error")
-  end,
+vim.keymap.set("n", "<leader>od", "<cmd>TroubleToggle workspace_diagnostics<cr>",
   { silent = true, noremap = true, desc = "[O]pen [D]iagnostics " }
 )
+vim.keymap.set('n', '<leader>lc', ":lclose<CR>", { desc = "[L]ocationlist [c]lose", silent = true })
+vim.keymap.set('n', '<leader>lc', ":lclose<CR>", { desc = "[L]ocationlist [c]lose", silent = true })
 
 -- QUICKLIST
 vim.keymap.set('n', '[q', ':cp<CR>', { desc = "[Q]uicklist List Prev", silent = true })
@@ -513,26 +542,19 @@ vim.keymap.set('n', '<leader>qo', ':copen<CR>', { desc = "[Q]uicklist [O]pen", s
 vim.keymap.set("n", "<leader>,", "mB:vimgrep //j src/**<left><left><left><left><left><left><left><left><left>",
   { desc = "[,] Search in project", silent = true })
 
-vim.keymap.set('n', '<leader>/', function()
-  vim.lsp.buf.document_symbol({
-    on_list = function(options)
-      vim.fn.setqflist({}, ' ', options)
-      vim.api.nvim_command('Cfilter Function')
-      vim.api.nvim_command('copen')
-    end
-  })
-end, { desc = "[/] Load file functions into quickfix list" })
+vim.keymap.set('n', '<leader>/', "<cmd>TroubleToggle lsp_references<cr>",
+  { desc = "[/] Load file functions into quickfix list" })
 
 -- Use spaces, 2 by default
 vim.cmd('set tabstop=2')
 vim.cmd('set shiftwidth=2')
 
-vim.keymap.set('n', '[l', ':lpreviour<CR>', { desc = "[L]location list Prev", silent = true })
+vim.keymap.set('n', '[l', ':lprevious<CR>', { desc = "[L]location list Prev", silent = true })
 vim.keymap.set('n', ']l', ':lnext<CR>', { desc = "[L]ocation list Next", silent = true })
 -- Auto close location list window upon selecting item
 vim.api.nvim_create_autocmd({ 'Filetype' }, {
   callback = function()
-    vim.cmd('nmap <buffer> <cr> <cr>:cclose<cr>')
+    vim.cmd('nmap <buffer> <cr> <cr>:cclose<cr>:lclose<cr>')
   end,
   pattern = 'qf',
 })
@@ -663,7 +685,7 @@ vim.keymap.set('n', '<leader><tab>6', "gt6<CR>", { desc = "[<Tab>] Goto tab [6]"
 require('todo-comments').setup({
   signs = false,
   keywords = {
-    TODO = { icon = " ", color = "info" },
+    TODO = { icon = "⚑", color = "info" },
     WARN = { icon = " ", color = "warning" },
     NOTE = { icon = " ", color = "hint", alt = { "INFO" } },
   },
@@ -684,11 +706,7 @@ vim.keymap.set("n", "[t", function()
   })
 end, { desc = "[T]odo Previous" })
 
-vim.keymap.set("n", "<leader>ot", function()
-    vim.cmd("TodoLocList")
-  end,
-  { silent = true, noremap = true, desc = "[O]pen [T]odolist " }
-)
+vim.keymap.set("n", "<leader>ot", "mB:TodoLocList<CR>", { silent = true, noremap = true, desc = "[O]pen [T]odolist" })
 
 
 -- NOTE: AUTOPAIRS
