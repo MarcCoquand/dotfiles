@@ -33,11 +33,13 @@ require('lazy').setup({
   'tpope/vim-fugitive',
   'tpope/vim-rhubarb',
 
-  'MarcCoquand/Prototype.vim',
 
+  'MarcCoquand/Prototype.vim',
+  'ThePrimeagen/refactoring.nvim',
   -- Automatically cd to project root dir
   'airblade/vim-rooter',
 
+  'chentoast/marks.nvim',
   -- Detect tabstop and shiftwidth automatically
   'tpope/vim-sleuth',
 
@@ -47,6 +49,13 @@ require('lazy').setup({
   -- Color theme
   'andreypopp/vim-colors-plain',
 
+  {
+    'mrcjkb/haskell-tools.nvim',
+    dependencies = {
+      'nvim-lua/plenary.nvim',
+    },
+    branch = '1.x.x', -- recommended
+  },
   -- Motion
   "rlane/pounce.nvim",
 
@@ -62,17 +71,14 @@ require('lazy').setup({
       action_keys = {
         jump_close = { "<CR>" },
       },
-      fold_open = "v",      -- icon used for open folds
-      fold_closed = ">",    -- icon used for closed folds
+      fold_open = "",    -- icon used for open folds
+      fold_closed = "",  -- icon used for closed folds
       indent_lines = false, -- add an indent guide below the fold icons
       signs = {
         -- icons / text used for a diagnostic
-        error = "error",
-        warning = "warn",
-        hint = "hint",
-        information = "info"
+        other = "",
       },
-      use_diagnostic_signs = false
+      use_diagnostic_signs = true
     },
   },
   -- Debugger
@@ -221,7 +227,8 @@ require('lazy').setup({
     -- Autocompletion
     'hrsh7th/nvim-cmp',
     dependencies = { 'hrsh7th/cmp-nvim-lsp', 'L3MON4D3/LuaSnip', 'saadparwaiz1/cmp_luasnip', 'hrsh7th/cmp-buffer',
-      'hrsh7th/cmp-cmdline', 'hrsh7th/cmp-path', 'hrsh7th/cmp-nvim-lsp-document-symbol', },
+      'hrsh7th/cmp-cmdline', 'hrsh7th/cmp-path', 'hrsh7th/cmp-nvim-lsp-document-symbol',
+      'hrsh7th/cmp-nvim-lsp-signature-help' },
   },
   {
     -- Get fuzzy matching in normal commands
@@ -248,7 +255,7 @@ require('lazy').setup({
   },
 
 
-  -- 'https://git.sr.ht/~marcc/BufferBrowser',
+  'https://git.sr.ht/~marcc/BufferBrowser',
   -- ORG
   'nvim-orgmode/orgmode',
 
@@ -277,6 +284,51 @@ require('lazy').setup({
   },
 }, {})
 
+-- NOTE: MARKS
+
+require("marks").setup({
+  mappings = {
+    next = ']m',
+    prev = '[m'
+  }
+})
+
+vim.keymap.set("n", "<leader>mo", function()
+  vim.cmd ":MarksListAll"
+  vim.cmd ":lclose"
+  vim.cmd ":Trouble loclist"
+end, { noremap = true, silent = true, expr = false, desc = "[M]arks [O]pen" })
+
+-- NOTE: REFACTORING
+
+require('refactoring').setup({})
+-- Remaps for the refactoring operations currently offered by the plugin
+vim.api.nvim_set_keymap("v", "<leader>re", [[ <Esc><Cmd>lua require('refactoring').refactor('Extract Function')<CR>]],
+  { noremap = true, silent = true, expr = false, desc = "[R]efactor [E]xtract function" })
+vim.api.nvim_set_keymap("v", "<leader>rf",
+  [[ <Esc><Cmd>lua require('refactoring').refactor('Extract Function To File')<CR>]],
+  { noremap = true, silent = true, expr = false, desc = "[R]efactor Extract Function to [F]ile" })
+vim.api.nvim_set_keymap("v", "<leader>rv", [[ <Esc><Cmd>lua require('refactoring').refactor('Extract Variable')<CR>]],
+  { noremap = true, silent = true, expr = false, desc = "[R]efactor Extract [V]ariable" })
+vim.api.nvim_set_keymap("v", "<leader>ri", [[ <Esc><Cmd>lua require('refactoring').refactor('Inline Variable')<CR>]],
+  { noremap = true, silent = true, expr = false, desc = "[R]efactor Extract [I]inline variable" })
+
+-- Extract block doesn't need visual mode
+vim.api.nvim_set_keymap("n", "<leader>rb", [[ <Cmd>lua require('refactoring').refactor('Extract Block')<CR>]],
+  { noremap = true, silent = true, expr = false })
+vim.api.nvim_set_keymap("n", "<leader>rbf", [[ <Cmd>lua require('refactoring').refactor('Extract Block To File')<CR>]],
+  { noremap = true, silent = true, expr = false })
+
+-- Inline variable can also pick up the identifier currently under the cursor without visual mode
+vim.api.nvim_set_keymap("n", "<leader>ri", [[ <Cmd>lua require('refactoring').refactor('Inline Variable')<CR>]],
+  { noremap = true, silent = true, expr = false })
+
+-- NOTE: BUFFERBROWSER
+require 'buffer_browser'.setup({
+  filetype_filters = { 'gitcommit', 'TelescopePrompt', 'oil' }
+})
+vim.keymap.set('n', ']b', require 'buffer_browser'.next, { desc = "Next [B]uffer" })
+vim.keymap.set('n', '[b', require 'buffer_browser'.prev, { desc = "Previous [B]uffer" })
 
 -- NOTE: OIL
 require("oil").setup({
@@ -310,39 +362,35 @@ end
 -- modified = "%m"
 -- align_right = "%="
 -- fileencoding = " %{&fileencoding?&fileencoding:&encoding}"
--- ERRORS = "%{luaeval('vim.lsp.diagnostic.get_count(0, [[Error]])')}"
 -- fileformat = " [%{&fileformat}]"
 -- filetype = " %y"
 -- percentage = " %p%%"
--- Error count = E:%{luaeval('getErrorCount()')}
-
--- TODO: Fix red highlight group
---
--- PmenuSel       xxx ctermfg=251 ctermbg=236 gui=bold guifg=#cccccc guibg=#303030
--- DiagnosticError xxx ctermfg=1 guifg=Red
---
--- local function highlight(group, fg, bg)
---   vim.cmd("highlight " .. group .. " guifg=" .. fg .. " guibg=" .. bg)
--- end
---
--- if (vim.o.background == 'light') then
---   highlight("PmenuError", "Red", "#e5e5e5")
--- else
---   highlight("PmenuError", "Red", "#303030")
--- end
 
 function GetDiagnosticErrorCount()
   local errorCount = #vim.diagnostic.get(0, { severity = vim.diagnostic.severity.ERROR })
   if (errorCount > 0) then
-    return ' ' .. errorCount
+    return ' %#StatusLineError# ' .. errorCount .. '%*'
   end
   return ''
 end
 
--- vim.opt.statusline =
--- "%#PmenuSel#%m %l:%c%{luaeval('GetDiagnosticErrorCount()')} %f %=  %{FugitiveStatusline()}"
+function GetGitSignsHead()
+  local gitsigns = vim.b.gitsigns_head
+  if (gitsigns ~= nil) then
+    return "'" .. gitsigns
+  end
+  return ''
+end
+
+function HasChanged()
+  if (vim.bo.modified) then
+    return ' -- Edited'
+  end
+  return ''
+end
+
 vim.opt.statusline =
-"%m %l:%c %#StatusLineError#%{luaeval('GetDiagnosticErrorCount()')}%* %f %=  %{FugitiveStatusline()}"
+"%l:%c%{%luaeval('GetDiagnosticErrorCount()')%} %f%{%luaeval('HasChanged()')%}%=  %{luaeval('GetGitSignsHead()')}"
 
 -- NOTE: NVIM-DAP
 
@@ -379,13 +427,14 @@ vim.keymap.set("n", "gr", ":SnipRun<CR>", { desc = "Run in [R]epl" })
 vim.keymap.set("v", "gr", ":SnipRun<CR>", { desc = "Run in [R]epl" })
 require('sniprun').setup({
   display = {
-    "TerminalWithCode",
+    "Terminal",
   },
-  selected_interpreters = { "JS_TS_deno" },
-  repl_enable = { "JS_TS_deno" },
-  display_options = {
-    terminal_scrollback = vim.o.scrollback, -- change terminal display scrollback lines
-  }
+  -- selected_interpreters = { "JS_TS_deno" },
+  -- repl_enable = { "JS_TS_deno" },
+  live_display = { "Terminal" }, --# display mode used in live_mode
+  -- display_options = {
+  --   terminal_scrollback = vim.o.scrollback, -- change terminal display scrollback lines
+  -- }
 })
 
 -- NOTE: ORG_MODE
@@ -393,8 +442,18 @@ require('orgmode').setup_ts_grammar()
 require('orgmode').setup({
   org_agenda_files = { "~/Library/Mobile Documents/com~apple~CloudDocs/org/**" },
   org_default_notes_file = '~/Library/Mobile Documents/com~apple~CloudDocs/org/inbox.org',
+  org_capture_templates = {
+    t = { description = 'Task', template = '* TODO %?\n  %u' },
+    j = {
+      description = 'Journal',
+      template = '* %U: %?',
+      target = '~/Library/Mobile Documents/com~apple~CloudDocs/org/journal.org'
+    }
+  }
 })
 vim.opt.conceallevel = 2
+vim.keymap.set("n", "<leader>oj", ":e ~/Library/Mobile Documents/com~apple~CloudDocs/org/journal.org<CR>",
+  { desc = "[O]rg [J]ournal", silent = true })
 
 -- NOTE: FUGITIVE
 vim.keymap.set("n", "<leader>gg", ":Git<CR>", { desc = "[G]it To[g]gle" })
@@ -495,6 +554,8 @@ vim.g.copilot_filetypes = {
   ["elm"] = true,
   ["html"] = true,
   ["css"] = true,
+  ["sql"] = true,
+  ["sh"] = true,
   ["markdown"] = true
 }
 vim.g.copilot_assume_mapped = true
@@ -510,11 +571,16 @@ null_ls.setup({
   sources = {
     null_ls.builtins.diagnostics.eslint,
     null_ls.builtins.formatting.prettier,
+    null_ls.builtins.code_actions.refactoring,
+    null_ls.builtins.formatting.fourmolu.with({
+      extra_args = { "-o", "-XOverloadedRecordDot", "-o", "-XDuplicateRecordFields", "-o", "-XImplicitParams" }
+    }),
     require("typescript.extensions.null-ls.code-actions"),
   },
 })
 
 -- NOTE: GENERAL SETTINGS
+-- TODO: Set up symbols for errors and warnings, to differentiate between marks and diagnostics
 -- TODO: Implement search for current word and add to quickfix list
 vim.o.splitbelow = true
 vim.cmd('packadd cfilter')
@@ -532,18 +598,25 @@ vim.keymap.set("n", "<leader>od", "<cmd>TroubleToggle workspace_diagnostics<cr>"
   { silent = true, noremap = true, desc = "[O]pen [D]iagnostics " }
 )
 vim.keymap.set('n', '<leader>lc', ":lclose<CR>", { desc = "[L]ocationlist [c]lose", silent = true })
-vim.keymap.set('n', '<leader>lc', ":lclose<CR>", { desc = "[L]ocationlist [c]lose", silent = true })
+vim.keymap.set('i', '<C-b>', 'b:gitsigns_head', { expr = true })
+
+-- Set diagnostic symbols
+local signs = { Error = " ", Warn = " ", Hint = " ", Info = " " }
+for type, icon in pairs(signs) do
+  local hl = "DiagnosticSign" .. type
+  vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = hl })
+end
+
 
 -- QUICKLIST
 vim.keymap.set('n', '[q', ':cp<CR>', { desc = "[Q]uicklist List Prev", silent = true })
 vim.keymap.set('n', ']q', ':cn<CR>', { desc = "[Q]uicklist List Next", silent = true })
-vim.keymap.set('n', '<leader>qc', ':cclose<CR>', { desc = "[Q]uicklist [C]lose", silent = true })
-vim.keymap.set('n', '<leader>qo', ':copen<CR>', { desc = "[Q]uicklist [O]pen", silent = true })
-vim.keymap.set("n", "<leader>,", "mB:vimgrep //j src/**<left><left><left><left><left><left><left><left><left>",
+vim.keymap.set('n', '<leader>qo', ':Trouble quickfix<CR>', { desc = "[Q]uicklist [O]pen", silent = true })
+vim.keymap.set("n", "<leader>/", "mB:vimgrep //j src/**<left><left><left><left><left><left><left><left><left>",
   { desc = "[,] Search in project", silent = true })
 
-vim.keymap.set('n', '<leader>/', "<cmd>TroubleToggle lsp_references<cr>",
-  { desc = "[/] Load file functions into quickfix list" })
+vim.keymap.set('n', '<leader>cr', "<cmd>TroubleToggle lsp_references<cr>",
+  { desc = "[/] Load file functions into quickfix list", silent = true })
 
 -- Use spaces, 2 by default
 vim.cmd('set tabstop=2')
@@ -589,7 +662,7 @@ vim.cmd [[autocmd BufLeave,VimLeave *.scss,*.css normal! mS]]
 -- Last Opened Programming File (Couldn't find a better name that doesn't conflict with other names)
 vim.api.nvim_create_autocmd({ "BufLeave", "VimLeave" },
   {
-    pattern = "*.js,*.ts,*.lua,*.hs,*.clj,*.html,*njk,*.liquid",
+    pattern = "*.js,*.ts,*.lua,*.hs,*.clj,*.html,*.njk,*.liquid, *.hs, *.lhs",
     callback = function()
       -- Not file match
       local function nfm(str)
@@ -597,15 +670,15 @@ vim.api.nvim_create_autocmd({ "BufLeave", "VimLeave" },
       end
 
       -- Tests are stored separately
-      if nfm("config.js") and nfm("conf.js") and nfm("test.ts") and nfm("test.js") and nfm("spec.js") and nfm("spec.ts") then
+      if nfm("config.js") and nfm("conf.js") and nfm("test.ts") and nfm("test.js") and nfm("spec.js") and nfm("spec.ts") and nfm("*Spec.hs") then
         vim.cmd [[normal! mP]]
       end
     end
   })
 -- Last Opened Test File
-vim.cmd [[autocmd BufLeave,VimLeave *.test.js,*.test.ts,*.spec.js,*.spec.ts normal! mT]]
+vim.cmd [[autocmd BufLeave,VimLeave *.test.js,*.test.ts,*.spec.js,*.spec.ts,*Spec.hs normal! mT]]
 -- Last Opened Config
-vim.cmd [[autocmd BufLeave,VimLeave *.json,*conf.js,*config.js normal! mC]]
+vim.cmd [[autocmd BufLeave,VimLeave *.json,*conf.js,*config.js,*.yml,*.yaml,*.cabal normal! mC]]
 -- Last Opened Documentation
 vim.cmd [[autocmd BufLeave,VimLeave *.md,*.org,*.txt normal! mD]]
 vim.cmd [[augroup End]]
@@ -799,8 +872,7 @@ local on_attach = function(_, bufnr)
 
   nmap('gd', vim.lsp.buf.definition, '[G]oto [D]efinition')
   -- TODO: Replace lsp references lookup
-  -- nmap('<leader>cr', require('telescope.builtin').lsp_references, '[C]ode [R]eferences')
-  nmap('<leader>cI', vim.lsp.buf.implementation, '[C]ode [I]mplementation')
+  nmap('<leader>ci', vim.lsp.buf.implementation, '[C]ode [I]mplementation')
   nmap('<leader>D', vim.lsp.buf.type_definition, 'Type [D]efinition')
   -- TODO: Replace document symbol lookup
   -- nmap('<leader>ds', require('telescope.builtin').lsp_document_symbols, '[D]ocument [S]ymbols')
@@ -919,9 +991,10 @@ cmp.setup {
     end, { 'i', 's' }),
   },
   sources = {
+    { name = 'nvim_lsp_signature_help' },
     { name = 'nvim_lsp' },
     { name = 'luasnip' },
-    { name = 'fuzzy_path', option = { fd_timeout_msec = 1500 } },
+    { name = 'fuzzy_path',             option = { fd_timeout_msec = 1500 } },
     { name = 'buffer' },
     { name = 'path' },
     { name = 'cmd_line' },
