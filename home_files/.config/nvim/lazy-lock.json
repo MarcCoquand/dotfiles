@@ -14,6 +14,7 @@
   "copilot.vim": { "branch": "release", "commit": "1358e8e45ecedc53daf971924a0541ddf6224faf" },
   "coq_nvim": { "branch": "coq", "commit": "55ca08083cab18bb5cd1b08f2d5c295b87fce0ef" },
   "fidget.nvim": { "branch": "main", "commit": "0ba1e16d07627532b6cae915cc992ecac249fb97" },
+  "focus.nvim": { "branch": "master", "commit": "3d9df42aa4f9b572348418207b752f81adea09a5" },
   "fuzzy.nvim": { "branch": "master", "commit": "67a42ad2fa6d5ff41f0ef3cf69bb247410da5d7a" },
   "gitsigns.nvim": { "branch": "main", "commit": "f868d82a36f7f7f5e110eb0a9659993984f59875" },
   "haskell-tools.nvim": { "branch": "1.x.x", "commit": "7154357bc5213656a6af134e2babec1c364aa5e6" },

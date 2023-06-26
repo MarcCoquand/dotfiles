@@ -34,6 +34,7 @@ require('lazy').setup({
   'tpope/vim-rhubarb',
 
 
+
   'MarcCoquand/Prototype.vim',
   'ThePrimeagen/refactoring.nvim',
   -- Automatically cd to project root dir
@@ -285,7 +286,6 @@ require('lazy').setup({
 }, {})
 
 -- NOTE: MARKS
-
 require("marks").setup({
   mappings = {
     next = ']m',
@@ -330,6 +330,13 @@ require 'buffer_browser'.setup({
 vim.keymap.set('n', ']b', require 'buffer_browser'.next, { desc = "Next [B]uffer" })
 vim.keymap.set('n', '[b', require 'buffer_browser'.prev, { desc = "Previous [B]uffer" })
 
+-- NOTE: COLOR SCEHEME THEME
+-- vim.cmd("set background=dark")
+vim.cmd("colorscheme plain")
+if vim.opt.background:get() == 'dark' then
+  vim.cmd("highlight VertSplit guifg=#646464")
+end
+
 -- NOTE: OIL
 require("oil").setup({
   win_options = {
@@ -342,14 +349,7 @@ require("oil").setup({
 vim.keymap.set("n", "-", require("oil").open, { desc = "Open parent directory" })
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
-
-
--- NOTE: COLOR SCEHEME THEME
--- vim.cmd("set background=dark")
-vim.cmd("colorscheme plain")
-if vim.opt.background:get() == 'dark' then
-  vim.cmd("highlight VertSplit guifg=#646464")
-end
+vim.cmd('hi! link OilDir Whitespace')
 
 
 -- NOTE: STATUS LINE
@@ -366,12 +366,12 @@ end
 -- filetype = " %y"
 -- percentage = " %p%%"
 
-function GetDiagnosticErrorCount()
+function ErrorHighlight()
   local errorCount = #vim.diagnostic.get(0, { severity = vim.diagnostic.severity.ERROR })
   if (errorCount > 0) then
-    return ' %#StatusLineError# ' .. errorCount .. '%*'
+    return '%#WildMenu#[ERR] '
   end
-  return ''
+  return '%#StatusLine#'
 end
 
 function GetGitSignsHead()
@@ -390,7 +390,7 @@ function HasChanged()
 end
 
 vim.opt.statusline =
-"%l:%c%{%luaeval('GetDiagnosticErrorCount()')%} %f%{%luaeval('HasChanged()')%}%=  %{luaeval('GetGitSignsHead()')}"
+"%{%luaeval('ErrorHighlight()')%}%l:%c %f%{%luaeval('HasChanged()')%}%=  %{luaeval('GetGitSignsHead()')}%*"
 
 -- NOTE: NVIM-DAP
 
@@ -599,6 +599,7 @@ vim.keymap.set("n", "<leader>od", "<cmd>TroubleToggle workspace_diagnostics<cr>"
 )
 vim.keymap.set('n', '<leader>lc', ":lclose<CR>", { desc = "[L]ocationlist [c]lose", silent = true })
 vim.keymap.set('i', '<C-b>', 'b:gitsigns_head', { expr = true })
+vim.keymap.set('c', '<C-b>', 'b:gitsigns_head', { expr = true })
 
 -- Set diagnostic symbols
 local signs = { Error = " ", Warn = " ", Hint = " ", Info = " " }
@@ -758,9 +759,9 @@ vim.keymap.set('n', '<leader><tab>6', "gt6<CR>", { desc = "[<Tab>] Goto tab [6]"
 require('todo-comments').setup({
   signs = false,
   keywords = {
-    TODO = { icon = "⚑", color = "info" },
+    TODO = { icon = "⚑", color = "info", alt = { "[TODO]" } },
     WARN = { icon = " ", color = "warning" },
-    NOTE = { icon = " ", color = "hint", alt = { "INFO" } },
+    NOTE = { icon = " ", color = "hint", alt = { "INFO", "[NOTE]", "[INFO]" } },
   },
   search = {
     pattern = [[TODO:]],
@@ -769,7 +770,7 @@ require('todo-comments').setup({
 
 vim.keymap.set("n", "]t", function()
   require("todo-comments").jump_next({
-    keywords = { "TODO", "NOTE" },
+    keywords = { "TODO", "NOTE", "[NOTE]", "[INFO]", "INFO", "[TODO]" },
   })
 end, { desc = "[T]odo Next" })
 
@@ -856,6 +857,11 @@ vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, { desc = "Go to previous dia
 vim.keymap.set('n', ']d', vim.diagnostic.goto_next, { desc = "Go to next diagnostic message" })
 vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float, { desc = "Open floating diagnostic message" })
 
+vim.opt.foldlevel = 20
+vim.opt.foldmethod = "expr"
+vim.opt.foldexpr = "nvim_treesitter#foldexpr()"
+
+
 -- LSP settings.
 --  This function gets run when an LSP connects to a particular buffer.
 local on_attach = function(_, bufnr)
@@ -919,7 +925,6 @@ local servers = {
 
 -- Setup neovim lua configuration
 require('neodev').setup()
-
 -- NOTE: NVIM-CMP
 -- nvim-cmp supports additional completion capabilities, so broadcast that to servers
 local capabilities = vim.lsp.protocol.make_client_capabilities()
